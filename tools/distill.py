@@ -83,7 +83,9 @@ def main():
     ap.add_argument("--eps0", type=int, default=160)
     ap.add_argument("--epochs", type=int, default=25)
     ap.add_argument("--jobs", type=int, default=2)
-    ap.add_argument("--init-float", default=None, help="reuse a float student npz + its dataset (skips float stage)")
+    ap.add_argument("--qat-epochs", type=int, default=None, help="epochs per QAT iteration (default: --epochs)")
+    ap.add_argument("--qat-lr", type=float, default=1e-3)
+    ap.add_argument("--qat-first-mult", type=int, default=1, help="multiply epochs of the first QAT iteration")
     a = ap.parse_args()
     from hoc.student import QMLP, choose_in_exp
     from hoc.intref import IntPolicy
@@ -124,7 +126,8 @@ def main():
         model.quant = True
         best = None
         for it in range(a.qat_iters + 1):
-            tr = train(model, X, Y, a.epochs, 1e-3 if it == 0 else 6e-4)
+            qe = a.qat_epochs or a.epochs
+            tr = train(model, X, Y, qe * (a.qat_first_mult if it == 0 else 1), a.qat_lr if it == 0 else a.qat_lr * 0.6)
             qm = model.export()
             blob = pack.to_bytes(qm)
             p = OUT / f"{a.name}.iter{it}.bin"
