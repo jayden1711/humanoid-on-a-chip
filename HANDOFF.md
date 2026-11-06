@@ -1,6 +1,6 @@
 # HANDOFF: humanoid-on-a-chip
-Status: first stop point reached on the host (baseline, compression study, memory fit); long-QAT sweep may still be finishing; no firmware, no hardware
-Next: owner reviews results/report.md and decides: go for firmware (Pico 2 first), or push the compression further (2-bit, recurrent students)
+Status: first stop point reached on the host (baseline, compression study, equivalence checks, memory fit all done); no firmware, no hardware
+Next: owner reviews results/report.md + results/equivalence.md and decides: firmware go (Pico 2 first), or push compression further (2-bit still fails, recurrent students untried)
 Updated: 2026-11-06
 
 Read CLAUDE.md, PLAN.md and ~/projects/NUC_RULES.md first. All numbers live in git-ignored `results/` (never in this file).
@@ -19,6 +19,13 @@ Read CLAUDE.md, PLAN.md and ~/projects/NUC_RULES.md first. All numbers live in g
 - `results/eval/<version>.json`: per-episode rows incl. full equivalence records (divergence time, cause, per-joint action error).
 - `results/memfit.json`: RP2350 / PY32F002B / QR fit (budget arithmetic; code-size and stack are assumptions, nothing built or measured).
 - `results/models/*.bin` packed models; `results/logs/` training and eval logs.
+
+## Findings in words (numbers are in results/)
+- The original teacher is the reference; its own float arithmetic with 8-bit rounded weights matches it, 4-bit and 2-bit rounding without retraining does not walk.
+- Distilled MLPs with QAT: 8-bit and 4-bit students walk and resist pushes; resistance drops gradually with size. A 4-bit student under the 2,953-byte QR limit exists and walks all clean scenarios; a 3-bit one too. Plain 2-bit (also mixed 2/2/4) did NOT reach walking with this QAT recipe; training MSE grew over DAgger iterations. Untried: bit-width annealing from 4 to 2, knowledge distillation from the 4-bit student, wider/deeper nets.
+- Longer QAT (`_L` versions) helped the 4-bit models at the QR size; the smallest versions that still walk with some push resistance are around 1-2 KB; below ~1 KB walking breaks down.
+- Equivalence: outcome (fall / no fall) matches the teacher in most episodes of the clean and single-disturbance scenarios, but NO compressed version is trajectory-equivalent: pelvis paths separate by more than 10 cm within ~2 s in essentially every episode (different gait phase/speed), and the mixed-disturbance scenario flips outcomes both ways. The 10 cm threshold is probably too tight for walking; consider a looser, gait-aware metric before using it as a pass/fail gate for firmware.
+- Memory fit: every packed candidate fits RP2350 and PY32F002B by arithmetic with an assumed code budget; the original int8 LSTM does not fit PY32F002B flash. Latency not measured.
 
 ## Reproduce
 ```
