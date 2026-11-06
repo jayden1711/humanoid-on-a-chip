@@ -20,3 +20,4 @@ each derivative keeps its source's license notice. Apache/BSD/MIT only.
 | MuJoCo (Python) | Apache-2.0 | host sim |
 | Raspberry Pi Pico SDK | BSD-3-Clause | RP2350 firmware |
 | ESP-IDF | Apache-2.0 | ESP32-S3 firmware |
+| CE C/C++ Toolchain (incl. `srldrvce`, `usbdrvce`) | LGPL-3.0, **needs owner decision before publishing anything linked against it** | TI-84 Plus CE target |

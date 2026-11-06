@@ -32,3 +32,17 @@ Demo video: bare chip on the desk with an LED blinking each control step, split 
 Hardware to buy (not ordered yet): Raspberry Pi Pico 2 (RP2350), optionally an ESP32-S3 dev board (also in pocket-vla's parts list).
 
 First stop point: baseline numbers on the host, the compression study (size vs. push resistance) entirely on the host, and a check that the best candidate fits the RP2350's memory. Then stop and report before any firmware work. No results in git until I approve; nothing posted without my go-ahead.
+
+## Second target platform: TI-84 Plus CE
+
+TI-84 Plus CE graphing calculator: eZ80 CPU at 48 MHz, ~150 KB RAM, programmed in C with the community toolchain
+(CE C/C++ Toolchain, github.com/CE-Programming/toolchain).
+
+First check:
+1. Time an int8 matrix multiply at the distilled policy's size on the calculator.
+2. Check whether the community USB serial libraries (`srldrvce` / `usbdrvce`) can talk to a Mac.
+
+License note: the CE toolchain and its libraries are LGPL-3.0, not Apache/BSD/MIT. Local experiments are fine.
+The owner decides before any calculator binary or code linked against them is published.
+
+Hardware to buy: TI-84 Plus CE.
