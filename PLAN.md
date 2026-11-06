@@ -29,7 +29,19 @@ Engineering steps:
 
 Demo video: bare chip on the desk with an LED blinking each control step, split screen with the G1 walking and getting pushed in sim; then unplug the USB cable and the robot collapses.
 
-Hardware to buy (not ordered yet): Raspberry Pi Pico 2 (RP2350), PY32F002B dev board. ESP32-S3 dev board optional (also in pocket-vla's parts list).
+Hardware to buy (not ordered yet): Raspberry Pi Pico 2 (RP2350), PY32F002B dev board, a cheap SWD programmer (to flash and debug the PY32F002B). ESP32-S3 dev board optional (also in pocket-vla's parts list).
+
+## Verification: behavioral equivalence
+
+Every compressed version (each quantization level, each distilled network, each target build) is checked for
+behavioral equivalence against the original float policy, not just for average walking quality:
+- Both run with the same seeds and the same disturbance schedule: sensor dropouts, observation delays, IMU spikes,
+  pushes, plus undisturbed walking.
+- Compare step by step: action error per joint, how far the resulting trajectories drift apart (base pose,
+  joint states), and fall / no-fall per episode.
+- Report where behavior diverges: which disturbance, at what time, by how much, and whether the compressed
+  policy falls where the original doesn't (or the other way round). Averages alone are not enough.
+- On-chip (HIL) runs repeat the same check against the host's integer reference, to catch firmware and numerics bugs.
 
 First stop point: baseline numbers on the host, the compression study (size vs. push resistance) entirely on the host, and a check that the best candidate fits the RP2350's memory. Then stop and report before any firmware work. No results in git until I approve; nothing posted without my go-ahead.
 
