@@ -83,11 +83,27 @@ def events(sc):
     return sorted(ev)
 
 
-def rollout(policy, sc, record=True):
-    """Closed-loop episode. Returns dict of per-step arrays. The corrupted observation is what the policy sees."""
+def rollout(policy, sc, record=True, label=None, beta=0.0, act_noise=0.0, rng=None):
+    """Closed-loop episode. Returns dict of per-step arrays. The corrupted observation is what the policy sees.
+
+    For distillation data: `label` (a policy) shadows on the same observations and its actions are recorded as
+    rec["label"]; with probability `beta` per step the label's action is executed instead of the policy's, and
+    `act_noise` adds Gaussian noise to the executed action.
+    """
     env = G1Env().reset(sc["seed"])
     policy.reset()
-    cmdf = _cmd_fn(sc["cmd"])
+    if label is not None:
+        label.reset()
+        rec_label = []
+    if "cmd_seq" in sc:
+        seg = sc["cmd_seq"]
+        def cmdf(t):
+            c = seg[0][1]
+            for ts, cs in seg:
+                if t >= ts: c = cs
+            return tuple(c)
+    else:
+        cmdf = _cmd_fn(sc["cmd"])
     n = int(round(sc["T"] / CTRL_DT))
     hist = []  # clean observation history for delays
     last_good = None
@@ -118,6 +134,13 @@ def rollout(policy, sc, record=True):
                     o_in[3:5] += np.array(s["tilt"], np.float32)
             last_good = o_in
         a = policy.act(o_in)
+        if label is not None:
+            y = label.act(o_in)
+            rec_label.append(y)
+            if beta > 0 and rng.random() < beta:
+                a = y
+            if act_noise > 0:
+                a = a + rng.normal(0, act_noise, a.shape)
         push = None
         for p in sc["pushes"]:
             if p["t"] <= t < p["t"] + p["dur"]:
@@ -133,7 +156,42 @@ def rollout(policy, sc, record=True):
     out = {"fell_t": fell_t, "n": k + 1, "scenario": sc}
     if rec is not None:
         out.update({k_: np.array(v) for k_, v in rec.items()})
+    if label is not None:
+        out["label"] = np.array(rec_label, np.float32)
     return out
+
+
+def random_train_scenario(seed):
+    """Randomised training episode (seeds >= 1000 are reserved for training; evaluation uses seeds < 100)."""
+    rng = np.random.default_rng(seed)
+    T = 20.0
+    seg, t = [], 0.0
+    while t < T:
+        c = [0.0, 0.0, 0.0]
+        if rng.random() > 0.25:
+            c[0] = rng.uniform(-0.3, 0.7) if rng.random() < 0.8 else 0.0
+            c[1] = rng.uniform(-0.25, 0.25) if rng.random() < 0.4 else 0.0
+            c[2] = rng.uniform(-0.5, 0.5) if rng.random() < 0.4 else 0.0
+        seg.append((t, c))
+        t += rng.uniform(2.0, 4.0)
+    sc = {"name": "train", "seed": seed, "cmd": "walk", "cmd_seq": seg, "T": T,
+          "pushes": [], "dropouts": [], "delays": [], "spikes": []}
+    for _ in range(int(rng.integers(0, 5))):
+        a = rng.uniform(-np.pi, np.pi)
+        sc["pushes"].append({"t": float(rng.uniform(1, T - 1)), "dur": 0.1, "force": float(rng.uniform(30, 300)),
+                             "dir": [float(np.cos(a)), float(np.sin(a))]})
+    if rng.random() < 0.4:
+        for _ in range(int(rng.integers(1, 5))):
+            sc["dropouts"].append({"t": float(rng.uniform(1, T - 1)), "steps": int(rng.integers(3, 9))})
+    if rng.random() < 0.3:
+        for _ in range(int(rng.integers(1, 3))):
+            sc["delays"].append({"t": float(rng.uniform(1, T - 3)), "dur": float(rng.uniform(1, 2)), "k": int(rng.integers(1, 3))})
+    if rng.random() < 0.4:
+        for _ in range(int(rng.integers(1, 6))):
+            sc["spikes"].append({"t": float(rng.uniform(1, T - 1)), "steps": int(rng.integers(1, 3)),
+                                 "gyro": rng.normal(0, 4.0, 3).tolist(), "tilt": rng.normal(0, 0.25, 2).tolist()})
+    sc["pushes"].sort(key=lambda p: p["t"])
+    return sc
 
 
 def yaw_of(q):
