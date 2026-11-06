@@ -17,6 +17,10 @@ Plan: PLAN.md (the owner's). State: HANDOFF.md.
   `~/projects/bin/gpu-run --need-mib <N> --label humanoid-on-a-chip -- ...`.
 - **Hardware-in-the-loop runs where the board is plugged in, probably the Mac.** Keep the host bridge portable
   (macOS + Linux serial). Flashing a board only on the owner's request.
-- **Firmware:** integer-only C, fixed-size buffers, no dynamic allocation. Dependencies Apache/BSD/MIT only.
+- **Targets in order:** Pico 2 (RP2350), then PY32F002B (3 KB RAM / 24 KB flash), then a QR code (policy of no more than 2,953 bytes,
+  browser runner). ESP32-S3 is optional.
+- **Firmware:** integer-only C, fixed-size buffers, no dynamic allocation. Dependencies Apache/BSD/MIT only
+  (confirm the Puya PY32 HAL license before using it).
+- **QR web page:** static, client-side only. Nothing is hosted or deployed without the owner's go-ahead.
 - **Public repo, Apache-2.0.** Code only. Results, logs, videos, compressed weights and tables stay in
   git-ignored `results/` until the owner approves. Nothing goes public without the owner's go-ahead.

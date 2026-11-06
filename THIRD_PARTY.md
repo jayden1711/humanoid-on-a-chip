@@ -19,5 +19,8 @@ each derivative keeps its source's license notice. Apache/BSD/MIT only.
 |---|---|---|
 | MuJoCo (Python) | Apache-2.0 | host sim |
 | Raspberry Pi Pico SDK | BSD-3-Clause | RP2350 firmware |
-| ESP-IDF | Apache-2.0 | ESP32-S3 firmware |
-| CE C/C++ Toolchain (incl. `srldrvce`, `usbdrvce`) | LGPL-3.0, **needs owner decision before publishing anything linked against it** | TI-84 Plus CE target |
+| PY32F0 device support (CMSIS + Puya HAL/LL headers) | CMSIS Apache-2.0; Puya HAL/LL: **confirm license before use** | PY32F002B firmware |
+| GNU Arm Embedded toolchain (arm-none-eabi-gcc) | GPL (tool only; not linked into output beyond its runtime-library exceptions) | RP2350 / PY32F002B builds |
+| QR encoder/decoder library for the web page | choose Apache/BSD/MIT; pin on first use | QR target |
+| MuJoCo WASM build (for the browser sim) | Apache-2.0; pin on first use | QR target |
+| ESP-IDF | Apache-2.0 | ESP32-S3 firmware (optional) |

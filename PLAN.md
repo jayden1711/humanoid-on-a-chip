@@ -1,6 +1,6 @@
 # humanoid-on-a-chip
 
-Goal: a Unitree G1 walking policy runs entirely on a few-dollar microcontroller (Raspberry Pi Pico 2 / RP2350 first, ESP32-S3 second), controlling a simulated G1 in MuJoCo through hardware-in-the-loop. The body is simulated; the chip does all the control.
+Goal: a Unitree G1 walking policy runs entirely on tiny hardware, controlling a simulated G1 in MuJoCo through hardware-in-the-loop. Targets, in order: (a) Raspberry Pi Pico 2 (RP2350); (b) PY32F002B (Cortex-M0+, 24 MHz, 3 KB RAM, 24 KB flash; the chip found in disposable vapes, bought as a plain dev board); (c) a QR code: a walking policy under ~3 KB stored entirely in the QR, read by a small web page that runs the robot in the browser. ESP32-S3 is optional. The body is simulated; the chip does all the control.
 
 Claim (exact wording, never stronger): "A full-size humanoid's walking policy runs on a $4 chip." Not "an entire robot brain": there's no vision, planning or language.
 
@@ -23,26 +23,22 @@ Two modes: lockstep (sim waits for the chip; exact) and real-time (shows the chi
 Engineering steps:
 1. Baseline: run the chosen walker in MuJoCo on the host, record walking quality and push resistance (reuse the arena's falls-only push test).
 2. Compression: int8 quantization; if it doesn't fit or loses too much, distill into a smaller MLP. Keep push resistance as the main quality metric.
-3. Firmware: integer-only inference in C for RP2350 (and ESP32-S3), fixed-size buffers, no dynamic allocation, measured latency per step.
+3. Firmware: integer-only inference in C for RP2350, then PY32F002B (ESP32-S3 optional), fixed-size buffers, no dynamic allocation, measured latency per step.
 4. Host bridge: binary serial protocol with checksums, lockstep and real-time modes, logging.
-5. Results table: model size, RAM used, latency per step, walking speed, push resistance vs. the original float policy, for each compression level and each chip.
+5. Results table: model size, RAM used, latency per step, walking speed, push resistance vs. the original float policy, for each compression level and each target.
 
 Demo video: bare chip on the desk with an LED blinking each control step, split screen with the G1 walking and getting pushed in sim; then unplug the USB cable and the robot collapses.
 
-Hardware to buy (not ordered yet): Raspberry Pi Pico 2 (RP2350), optionally an ESP32-S3 dev board (also in pocket-vla's parts list).
+Hardware to buy (not ordered yet): Raspberry Pi Pico 2 (RP2350), PY32F002B dev board. ESP32-S3 dev board optional (also in pocket-vla's parts list).
 
 First stop point: baseline numbers on the host, the compression study (size vs. push resistance) entirely on the host, and a check that the best candidate fits the RP2350's memory. Then stop and report before any firmware work. No results in git until I approve; nothing posted without my go-ahead.
 
-## Second target platform: TI-84 Plus CE
+## Target notes
 
-TI-84 Plus CE graphing calculator: eZ80 CPU at 48 MHz, ~150 KB RAM, programmed in C with the community toolchain
-(CE C/C++ Toolchain, github.com/CE-Programming/toolchain).
-
-First check:
-1. Time an int8 matrix multiply at the distilled policy's size on the calculator.
-2. Check whether the community USB serial libraries (`srldrvce` / `usbdrvce`) can talk to a Mac.
-
-License note: the CE toolchain and its libraries are LGPL-3.0, not Apache/BSD/MIT. Local experiments are fine.
-The owner decides before any calculator binary or code linked against them is published.
-
-Hardware to buy: TI-84 Plus CE.
+- (a) Pico 2 / RP2350: first target and the HIL reference.
+- (b) PY32F002B: 3 KB RAM and 24 KB flash. Weights live in flash; RAM holds only activations, recurrent state
+  and serial buffers. Only a distilled int8 (or smaller) policy can fit.
+- (c) QR code: the largest standard QR code (version 40, low error correction) holds 2,953 bytes of binary data.
+  The whole policy, plus a small header (format version, layer shapes, scales, checksum), must fit in that.
+  The web page decodes the QR (camera or image) and runs the policy and a G1 sim client-side. No hosting
+  without the owner's go-ahead.
