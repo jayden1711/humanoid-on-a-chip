@@ -1,0 +1,26 @@
+# Results, logs and write-ups stay local until the owner approves publishing
+results/
+runs/
+videos/
+*.log
+*.mp4
+# Policies, weights and generated model headers are fetched/generated, not committed
+third_party/
+*.onnx
+*.pt
+*.pth
+*.safetensors
+*.npz
+# Firmware build output
+build/
+firmware/**/build/
+sdkconfig
+sdkconfig.old
+managed_components/
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+.claude/worktrees/
