@@ -7,7 +7,7 @@ Read CLAUDE.md, PLAN.md and ~/projects/NUC_RULES.md first. All numbers live in g
 
 ## What exists (local commits on branch `worktree-overnight-compression`, not pushed)
 - `hoc/env.py`: MuJoCo G1 12-DoF env (unitree_rl_gym model, 50 Hz, explicit PD at 500 Hz). Own code, nothing copied from robot-arena-sim.
-- `hoc/policies.py`: numpy teacher (original LSTM from `motion.pt`, checked against TorchScript: max diff 1.4e-5) and weight-rounded teacher variants.
+- `hoc/policies.py`: numpy teacher (original LSTM from `motion.pt`, checked against TorchScript: matches to float rounding) and weight-rounded teacher variants.
 - `hoc/evalsuite.py`: seeded scenarios (clean walk / command sequence / standing, sensor dropouts, observation delays, IMU spikes, mixed, falls-only push ladder standing and walking), metrics and the equivalence comparison (paired rollouts, divergence time and attributed event, teacher-forced action error per joint).
 - `hoc/pack.py`, `hoc/intref.py`: packed integer model format (header, per-channel requant multipliers, biases, b-bit packed weights, CRC32) and its integer-only reference. Tests: `tests/test_pack.py` (round trip; QAT forward equals integer reference).
 - `hoc/student.py`, `tools/distill.py`: DAgger distillation into an MLP, then quantization-aware training to 8/4/3/2-bit weights. Training seeds >= 1000, evaluation seeds < 100.
@@ -20,12 +20,8 @@ Read CLAUDE.md, PLAN.md and ~/projects/NUC_RULES.md first. All numbers live in g
 - `results/memfit.json`: RP2350 / PY32F002B / QR fit (budget arithmetic; code-size and stack are assumptions, nothing built or measured).
 - `results/models/*.bin` packed models; `results/logs/` training and eval logs.
 
-## Findings in words (numbers are in results/)
-- The original teacher is the reference; its own float arithmetic with 8-bit rounded weights matches it, 4-bit and 2-bit rounding without retraining does not walk.
-- Distilled MLPs with QAT: 8-bit and 4-bit students walk and resist pushes; resistance drops gradually with size. A 4-bit student under the 2,953-byte QR limit exists and walks all clean scenarios; a 3-bit one too. Plain 2-bit (also mixed 2/2/4) did NOT reach walking with this QAT recipe; training MSE grew over DAgger iterations. Untried: bit-width annealing from 4 to 2, knowledge distillation from the 4-bit student, wider/deeper nets.
-- Longer QAT (`_L` versions) helped the 4-bit models at the QR size; the smallest versions that still walk with some push resistance are around 1-2 KB; below ~1 KB walking breaks down.
-- Equivalence: outcome (fall / no fall) matches the teacher in most episodes of the clean and single-disturbance scenarios, but NO compressed version is trajectory-equivalent: pelvis paths separate by more than 10 cm within ~2 s in essentially every episode (different gait phase/speed), and the mixed-disturbance scenario flips outcomes both ways. The 10 cm threshold is probably too tight for walking; consider a looser, gait-aware metric before using it as a pass/fail gate for firmware.
-- Memory fit: every packed candidate fits RP2350 and PY32F002B by arithmetic with an assumed code budget; the original int8 LSTM does not fit PY32F002B flash. Latency not measured.
+## Findings
+Written up in git-ignored `results/findings_overnight.md` (local only until the owner approves).
 
 ## Reproduce
 ```
@@ -41,7 +37,7 @@ tools/sweep.sh h46_w4:46,46:4          # distill + evaluate one config
 - Compute: CPU only (torch CPU build in `.venv`); nets are tiny, so no gpu-run use. At most 2 worker processes per job, one job at a time, everything through sim-run (machine load was 11-14 from other projects).
 - Student family: stateless MLPs (obs already carries last action and gait phase). Recurrent students not tried yet.
 - Quantization: per-channel symmetric b-bit weights, int8 activations, Q8 output; requant by 16-bit multiplier and shift (int64 multiply in the reference; firmware needs a plan for that on the M0+).
-- Training scenarios use pushes of 30-300 N (450 N pushes made the teacher itself fall in over half the episodes).
+- Training scenarios use pushes of 30-300 N.
 - Model selection per run = iterate with fewest falls in its own DAgger rollouts (training distribution), not on eval seeds.
 
 ## Blocked / skipped
