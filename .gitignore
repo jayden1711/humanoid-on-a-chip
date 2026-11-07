@@ -24,3 +24,7 @@ __pycache__/
 .pytest_cache/
 .DS_Store
 .claude/worktrees/
+CLAUDE.md
+.claude/
+HANDOFF.md
+ORGANIZER.md
